@@ -124,8 +124,8 @@ The AI will navigate to your page, discover the tools, and execute them:
 > WebMCP turns your website's JavaScript functions into AI-callable tools. Register a function once, and any MCP-compatible AI client can discover and invoke it—with type-safe parameters and structured responses. The protocol is being [standardized through the W3C Web Machine Learning Community Group](https://github.com/webmachinelearning/webmcp).
 
 > [!NOTE]
-> **Try it live:** Explore the [Playground](https://meetchar.ai) to see WebMCP in action.
-> Questions? Reach out: [MiguelsPizza](https://github.com/MiguelsPizza) & [Zkitty](https://x.com/n0rizkitty)
+> **Try it live:** Explore the [Playground](https://usechar.ai) to see WebMCP in action.
+> Questions? Reach out: [MiguelsPizza](https://github.com/MiguelsPizza)
  
 [![Join Our Discord](https://img.shields.io/badge/Join%20Our%20Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/a9fBR6Bw)
 
