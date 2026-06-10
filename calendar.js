@@ -368,7 +368,13 @@ const findAvailability = ({ date, durationMinutes = 30, userId } = {}) => {
 
 const registerTool = (modelContext, tool, signal) => {
   try {
-    modelContext.registerTool(tool, { signal });
+    // The WebMCP spec carries the display title on the descriptor itself, but
+    // the current @mcp-b SDK only surfaces annotations.title to consumers
+    // (Persona approval bubbles, Chrome DevTools MCP) — mirror it there.
+    const descriptor = tool.title
+      ? { ...tool, annotations: { title: tool.title, ...tool.annotations } }
+      : tool;
+    modelContext.registerTool(descriptor, { signal });
   } catch (error) {
     console.warn(`[Calendar] Failed to register ${tool.name}`, error);
   }
@@ -389,6 +395,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'get_page_title',
+      title: 'Get page title',
       description: 'Get the current page title for this calendar example.',
       inputSchema: { type: 'object', properties: {} },
       async execute() {
@@ -402,6 +409,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'get_calendar_state',
+      title: 'Read calendar state',
       description:
         'Read the current calendar state: current local date-time, selected date, visible week, timezone, total event count, and visible events. Call this before creating or editing events. All event times are local wall-clock times in the calendar timezone.',
       inputSchema: { type: 'object', properties: {} },
@@ -417,6 +425,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'get_events',
+      title: 'List events',
       description:
         'List calendar events. Optionally filter by month in YYYY-MM format, userId, or a text search over title/description/location.',
       inputSchema: {
@@ -440,6 +449,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'get_users',
+      title: 'List calendar users',
       description:
         'Return valid calendar users/owners. Use one of these user IDs when creating an event.',
       inputSchema: { type: 'object', properties: {} },
@@ -456,6 +466,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'get_event_colors',
+      title: 'List event colors',
       description: 'Return the allowed event color names and their hex values.',
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
@@ -473,6 +484,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'find_availability',
+      title: 'Find open time slots',
       description:
         'Find open slots on a date, optionally for a single user. Workday is 9am-5pm local time. Returned slot times are local wall-clock times in the calendar timezone.',
       inputSchema: {
@@ -499,6 +511,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'select_date',
+      title: 'Jump to date',
       description: 'Move the calendar UI to a specific date without creating an event.',
       inputSchema: {
         type: 'object',
@@ -521,6 +534,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'create_event',
+      title: 'Create event',
       description:
         'Create a calendar event and render it on the page. startDate/endDate are LOCAL wall-clock times in the calendar timezone, formatted YYYY-MM-DDTHH:mm — never append "Z" or a UTC offset (any offset is ignored and the stated clock time is used as-is). Use a userId from get_users and a color from get_event_colors.',
       inputSchema: {
@@ -549,6 +563,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'update_event',
+      title: 'Update event',
       description:
         'Update an existing event by eventId. Only supplied fields are changed. startDate/endDate are LOCAL wall-clock times (YYYY-MM-DDTHH:mm, no "Z" or UTC offset).',
       inputSchema: {
@@ -578,6 +593,7 @@ const registerCalendarTools = () => {
     modelContext,
     {
       name: 'delete_event',
+      title: 'Delete event',
       description: 'Delete an event from the calendar by eventId.',
       inputSchema: {
         type: 'object',

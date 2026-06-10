@@ -41,12 +41,6 @@ cp .env.example .env.local # fill VITE_PERSONA_CLIENT_TOKEN for the Persona widg
 npm run dev
 ```
 
-> [!NOTE]
-> `@runtypelabs/persona` is currently installed from a vendored pre-release build
-> (`vendor/runtypelabs-persona-3.29.1-pr247.tgz`, [runtypelabs/persona#247](https://github.com/runtypelabs/persona/pull/247))
-> for the user-friendly tool approval bubbles. Once that PR ships, switch the
-> dependency back to the published npm version.
-
 ### 2. Add MCP Server to Your AI Client
 
 **Claude Code:**
