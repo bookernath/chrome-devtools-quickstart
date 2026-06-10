@@ -1,5 +1,5 @@
-# Chrome DevTools MCP Quickstart
-> Give AI agents direct access to your website's functionality—no screenshots, no DOM scraping, just structured tool calls.
+# Chrome DevTools MCP Quickstart + Persona Calendar
+> Give AI agents direct access to a calendar app—through Chrome DevTools MCP or an embedded Persona widget—no screenshots, no DOM scraping, just structured tool calls.
 
 ## Why This Matters
 **Up to 89% fewer tokens** compared to screenshot-based workflows.
@@ -13,17 +13,19 @@
 ```mermaid
 flowchart LR
     A[AI Client] --> B[Chrome DevTools MCP]
-    B -->|CDP| C[Your Website]
-    C -->|mcp-b/global| D[navigator.modelContext]
+    P[Persona Widget] --> C[Your Website]
+    B -->|CDP| C
+    C -->|mcp-b/global| D[document/navigator.modelContext]
 
     B -.->|list_webmcp_tools| E[Discovers tools]
     B -.->|call_webmcp_tool| F[Executes tools]
+    P -.->|clientTools + webmcp:*| F
 ```
 
-1. Your website loads [`@mcp-b/global`](https://www.npmjs.com/package/@mcp-b/global) which adds `navigator.modelContext`
-2. You register tools using `navigator.modelContext.registerTool()`
-3. [Chrome DevTools MCP](https://docs.mcp-b.ai/packages/chrome-devtools-mcp) connects to Chrome and exposes `list_webmcp_tools` + `call_webmcp_tool`
-4. AI agents discover and call your tools
+1. Your website loads [`@mcp-b/global`](https://www.npmjs.com/package/@mcp-b/global) which adds `document.modelContext` / `navigator.modelContext`
+2. The calendar registers tools in [`calendar.js`](./calendar.js) using `modelContext.registerTool()`
+3. [Chrome DevTools MCP](https://docs.mcp-b.ai/packages/chrome-devtools-mcp) exposes `list_webmcp_tools` + `call_webmcp_tool`
+4. The embedded Persona widget also snapshots those tools with `webmcp.enabled` and can call them as `webmcp:*` tools
 
 ---
 
@@ -34,8 +36,16 @@ flowchart LR
 ```bash
 git clone https://github.com/WebMCP-org/chrome-devtools-quickstart.git
 cd chrome-devtools-quickstart
-npm install && npm run dev
+npm install
+cp .env.example .env.local # fill VITE_PERSONA_CLIENT_TOKEN for the Persona widget
+npm run dev
 ```
+
+> [!NOTE]
+> `@runtypelabs/persona` is currently installed from a vendored pre-release build
+> (`vendor/runtypelabs-persona-3.29.1-pr247.tgz`, [runtypelabs/persona#247](https://github.com/runtypelabs/persona/pull/247))
+> for the user-friendly tool approval bubbles. Once that PR ships, switch the
+> dependency back to the published npm version.
 
 ### 2. Add MCP Server to Your AI Client
 
@@ -104,9 +114,15 @@ claude mcp add --transport http webmcp-docs https://docs.mcp-b.ai/mcp
 
 Ask your AI:
 
-> "Navigate to http://localhost:5173, list available WebMCP tools, and set the counter to 42"
+> "Navigate to http://localhost:5173, list available WebMCP tools, and create a Team Standup tomorrow at 10am."
 
-The AI will navigate to your page, discover the tools, and execute them:
+Or use the prompt bar above the calendar ("Ask your calendar copilot…"). Submitting it slides out the docked Calendar Copilot on the right, hides the manual input controls, and sends your message. Submitting it empty runs the default demo prompt:
+
+> "Create a Team Standup tomorrow at 10am, then verify it appears on the calendar."
+
+The app is intentionally hybrid: the Quick Add form covers mouse-and-keyboard workflows, while the prompt bar is the conversational front door — both drive the same calendar state that the WebMCP tools expose.
+
+The AI will discover the calendar tools and execute them directly:
 
 ![webmcp-Chrome-CDP-tutorial](https://github.com/user-attachments/assets/7c380e7b-08af-44bd-a51d-93b4524a6af6)
 
@@ -134,26 +150,36 @@ The AI will navigate to your page, discover the tools, and execute them:
 
 ## Example Tools
 
-This quickstart includes 3 example tools in [`counter.js`](./counter.js):
+This quickstart exposes 10 calendar tools in [`calendar.js`](./calendar.js):
 
 | Tool | Description |
 |------|-------------|
 | `get_page_title` | Returns `document.title` |
-| `get_counter` | Returns current counter value |
-| `set_counter` | Sets counter to specified value |
+| `get_calendar_state` | Returns selected date, visible week, timezone, and visible events |
+| `get_events` | Lists events, with optional month/user/search filters |
+| `get_users` | Returns valid calendar owners and UUIDs |
+| `get_event_colors` | Returns allowed event colors |
+| `find_availability` | Finds open workday slots |
+| `select_date` | Moves the calendar UI to a date |
+| `create_event` | Creates and renders an event |
+| `update_event` | Updates an event by ID |
+| `delete_event` | Deletes an event by ID |
 
 ### Registering a Tool
 
 ```javascript
 import '@mcp-b/global';  // Must be first!
 
-navigator.modelContext.registerTool({
-  name: "get_counter",
-  description: "Returns the current counter value",
+const modelContext = document.modelContext ?? navigator.modelContext;
+
+modelContext.registerTool({
+  name: "get_calendar_state",
+  description: "Returns the current calendar state",
   inputSchema: { type: "object", properties: {} },
+  annotations: { readOnlyHint: true },
   async execute() {
     return {
-      content: [{ type: "text", text: `Counter is ${counter}` }]
+      content: [{ type: "text", text: JSON.stringify(getCalendarState()) }]
     };
   }
 });
@@ -162,23 +188,24 @@ navigator.modelContext.registerTool({
 ### Tool with Parameters
 
 ```javascript
-navigator.modelContext.registerTool({
-  name: "set_counter",
-  description: "Sets the counter to the desired value",
+modelContext.registerTool({
+  name: "create_event",
+  description: "Creates a calendar event",
   inputSchema: {
     type: "object",
     properties: {
-      newCounterValue: {
-        type: "number",
-        description: "The number to set the counter to"
-      }
+      title: { type: "string" },
+      startDate: { type: "string", description: "ISO date-time" },
+      endDate: { type: "string", description: "ISO date-time" },
+      userId: { type: "string" },
+      color: { type: "string" }
     },
-    required: ["newCounterValue"]
+    required: ["title", "startDate", "endDate"]
   },
   async execute(args) {
-    setCounter(args.newCounterValue);
+    const event = createEvent(args);
     return {
-      content: [{ type: "text", text: `Counter is now ${args.newCounterValue}` }]
+      content: [{ type: "text", text: `Created ${event.title}` }]
     };
   }
 });
@@ -186,7 +213,7 @@ navigator.modelContext.registerTool({
 
 **To use in your own project:**
 ```bash
-npm install @mcp-b/global
+npm install @mcp-b/global @runtypelabs/persona
 ```
 Then import it before registering tools.
 
@@ -207,7 +234,7 @@ flowchart TD
 ```
 
 **Try it:**
-> "Create a WebMCP tool called 'toggle_theme' that switches between light and dark mode. Add it to counter.js, then test it."
+> "Create a WebMCP tool called 'reschedule_event' that moves an event by ID. Add it to calendar.js, then test it."
 
 ---
 
@@ -232,7 +259,7 @@ Chrome DevTools MCP isn't the only way to invoke WebMCP tools:
 | Option | What it does | Link |
 |--------|-------------|------|
 | **MCP-B Extension** | Aggregates tools from all open tabs into a single MCP server—connect Claude Desktop or Cursor to tools across multiple sites | [Chrome Web Store](https://chromewebstore.google.com/detail/mcp-b-extension/daohopfhkdelnpemnhlekblnikhdhfa) |
-| **Embedded Agent** | Add an AI chat widget to your site that can call your WebMCP tools directly | [Docs](https://docs.mcp-b.ai/calling-tools/embedded-agent) |
+| **Persona Widget** | Embedded chat widget in this app. It sends page tools as `clientTools[]` and resolves returned `webmcp:*` calls in the browser. | [Persona](https://www.npmjs.com/package/@runtypelabs/persona) |
 
 ---
 
@@ -272,10 +299,7 @@ echo "ANTHROPIC_API_KEY=your-key" > .env
 # Install dependencies
 npm install
 
-# Run simple benchmark (counter app - starts dev server automatically)
-npm run benchmark:simple:direct
-
-# Run complex benchmark (calendar app - uses live deployment)
+# Run complex benchmark (calendar app - uses live deployment by default, or set DEV_SERVER_URL)
 npm run benchmark:complex:direct
 ```
 
@@ -286,6 +310,7 @@ npm run benchmark:complex:direct
 | Problem | Solution |
 |---------|----------|
 | `navigator.modelContext is undefined` | Import `@mcp-b/global` before registering tools |
+| Persona token missing | Copy `.env.example` to `.env.local` and set `VITE_PERSONA_CLIENT_TOKEN` |
 | No tools found | Wait for page to fully load, check browser console |
 | Can't connect to Chrome | Ensure Chrome is running, check firewall settings |
 
