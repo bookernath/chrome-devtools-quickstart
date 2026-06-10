@@ -122,6 +122,8 @@ Or use the prompt bar above the calendar ("Ask your calendar copilot…"). Submi
 
 The app is intentionally hybrid: the Quick Add form covers mouse-and-keyboard workflows, while the prompt bar is the conversational front door — both drive the same calendar state that the WebMCP tools expose.
 
+**Alternate embedding style:** open [`/?mode=pill`](http://localhost:5173/?mode=pill) to mount Persona as its native bottom composer-bar pill (instead of the docked side panel). Same ten WebMCP tools, different chrome — submitting the pill expands an anchored chat panel over the calendar and minimizes back to the pill on close.
+
 The AI will discover the calendar tools and execute them directly:
 
 ![webmcp-Chrome-CDP-tutorial](https://github.com/user-attachments/assets/7c380e7b-08af-44bd-a51d-93b4524a6af6)

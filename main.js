@@ -16,6 +16,11 @@ setupCalendar(app);
 
 const personaToken = import.meta.env.VITE_PERSONA_CLIENT_TOKEN;
 const personaApiUrl = import.meta.env.VITE_PERSONA_API_URL;
+
+// `?mode=pill` mounts Persona as its native bottom composer-bar pill instead
+// of the docked side panel — same WebMCP tools, different embedding style.
+const isPillMode = new URLSearchParams(window.location.search).get('mode') === 'pill';
+document.body.classList.toggle('persona-pill-mode', isPillMode);
 const assistantToggle = document.querySelector('#assistant-toggle');
 const personaPromptNote = document.querySelector('[data-persona-prompt-note]');
 const personaPromptControls = document.querySelectorAll('[data-persona-prompt-input], [data-persona-prompt-submit]');
@@ -227,7 +232,9 @@ const syncToggleUi = (widget) => {
   assistantToggle.setAttribute('aria-label', open ? 'Hide Calendar Copilot' : 'Open Calendar Copilot');
   assistantToggle.title = open ? 'Hide Calendar Copilot' : 'Open Calendar Copilot';
   assistantToggle.classList.toggle('is-active', open);
-  document.body.classList.toggle('copilot-open', open);
+  // In pill mode the expanded panel overlays the page, so the layout
+  // simplification (header/prompt/quick-add collapse) only applies to docked.
+  document.body.classList.toggle('copilot-open', open && !isPillMode);
 };
 
 const openAndFocus = (widget, message) => {
@@ -323,13 +330,23 @@ if (!workspaceTarget) {
       },
       launcher: {
         ...DEFAULT_WIDGET_CONFIG.launcher,
-        mountMode: 'docked',
-        dock: {
-          side: 'right',
-          width: '440px',
-          reveal: 'emerge',
-          animate: true,
-        },
+        mountMode: isPillMode ? 'composer-bar' : 'docked',
+        ...(isPillMode
+          ? {
+              composerBar: {
+                expandOnSubmit: true,
+                expandedSize: 'anchored',
+                bottomOffset: '16px',
+              },
+            }
+          : {
+              dock: {
+                side: 'right',
+                width: '440px',
+                reveal: 'emerge',
+                animate: true,
+              },
+            }),
         autoExpand: false,
         mobileBreakpoint: 1080,
         title: 'Calendar Copilot',
