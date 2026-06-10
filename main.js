@@ -102,7 +102,7 @@ const calendarCopilotTheme = {
       background: '#ffffff',
       placeholder: '#94a3b8',
       border: '#dbe3ef',
-      borderRadius: '999px',
+      borderRadius: '24px',
       focus: {
         border: '#2563eb',
         ring: 'rgba(37, 99, 235, 0.12)',
@@ -367,8 +367,8 @@ if (!workspaceTarget) {
       statusIndicator: {
         ...DEFAULT_WIDGET_CONFIG.statusIndicator,
         visible: true,
-        idleText: 'Copilot can make mistakes. Review calendar changes before relying on them.',
-        connectedText: 'Copilot can make mistakes. Review calendar changes before relying on them.',
+        idleText: 'Copilot can make mistakes. Verify calendar changes.',
+        connectedText: 'Copilot can make mistakes. Verify calendar changes.',
         connectingText: 'Connecting Calendar Copilot…',
         errorText: 'Calendar Copilot connection error',
       },
